@@ -73,17 +73,18 @@ def main():
         return
 
     for path, ass_path in subtitles.items():
-        out_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(path))[0]}.mp4")
+        out_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(path))[0]}_subtitled.mp4")
         print(f"Adding TikTok-style subtitles to {os.path.basename(path)}...")
 
         video = ffmpeg.input(path)
         audio = video.audio
 
-        # Apply subtitles filter with TikTok styling
-        ffmpeg.concat(
-            video.filter('subtitles', ass_path),
-            audio, v=1, a=1
-        ).output(out_path).run(quiet=True, overwrite_output=True)
+        # Use the subtitles filter to overlay the .ass subtitles file
+        video = video.filter("subtitles", ass_path)
+
+        # Combine video and audio and output to file
+        ffmpeg.output(video, audio, out_path, vcodec="libx264", acodec="aac", strict="experimental") \
+              .run(quiet=True, overwrite_output=True)
 
         print(f"Saved subtitled video to {os.path.abspath(out_path)}.")
 
