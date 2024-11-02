@@ -116,7 +116,7 @@ def get_subtitles(audio_paths: list, output_srt: bool, output_dir: str, transcri
 
     return subtitles_path
 
-def write_word_level_srt(segments, file):
+def write_word_level_srt(segments, file, window_size=5):
     def format_time(seconds):
         hours, remainder = divmod(seconds, 3600)
         minutes, remainder = divmod(remainder, 60)
@@ -125,15 +125,27 @@ def write_word_level_srt(segments, file):
 
     index = 1
     for segment in segments:
-        for word in segment['words']:
-            start_time = format_time(word['start'])
-            end_time = format_time(word['end'])
-            text = word['word']  # Access the 'word' key directly based on the result structure
+        words = segment['words']
+        
+        # Render each word as a new subtitle entry within the same group, updating bolded word
+        for i in range(len(words)):
+            start_time = format_time(words[i]['start'])
+            end_time = format_time(words[i]['end'])
 
+            # Build subtitle text with current word in bold and the rest of the group as normal text
+            subtitle_text = []
+            for j in range(max(0, i - window_size + 1), min(i + window_size, len(words))):
+                if j == i:
+                    subtitle_text.append(f"<b>{words[j]['word']}</b>")  # Highlight current word
+                else:
+                    subtitle_text.append(words[j]['word'])
+
+            # Write subtitle entry with the current word highlighted within the group
             file.write(f"{index}\n")
             file.write(f"{start_time} --> {end_time}\n")
-            file.write(f"{text}\n\n")
+            file.write(f"{' '.join(subtitle_text)}\n\n")
             index += 1
+
 
 if __name__ == '__main__':
     main()
