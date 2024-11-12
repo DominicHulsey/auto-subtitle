@@ -21,7 +21,8 @@ def main():
                         help="only generate the .ass file and not create overlayed video")
     parser.add_argument("--verbose", type=str2bool, default=False,
                         help="whether to print out the progress and debug messages")
-
+    parser.add_argument("--delay", type=float, default=0,
+                        help="whether to print out the progress and debug messages")
     parser.add_argument("--task", type=str, default="transcribe", choices=[
                         "transcribe", "translate"], help="whether to perform X->X speech recognition ('transcribe') or X->English translation ('translate')")
     parser.add_argument("--language", type=str, default="auto", choices=["auto","af","am","ar","as","az","ba","be","bg","bn","bo","br","bs","ca","cs","cy","da","de","el","en","es","et","eu","fa","fi","fo","fr","gl","gu","ha","haw","he","hi","hr","ht","hu","hy","id","is","it","ja","jw","ka","kk","km","kn","ko","la","lb","ln","lo","lt","lv","mg","mi","mk","ml","mn","mr","ms","mt","my","ne","nl","nn","no","oc","pa","pl","ps","pt","ro","ru","sa","sd","si","sk","sl","sn","so","sq","sr","su","sv","sw","ta","te","tg","th","tk","tl","tr","tt","uk","ur","uz","vi","yi","yo","zh"], 
@@ -33,7 +34,8 @@ def main():
     output_ass: bool = args.pop("output_ass")
     ass_only: bool = args.pop("ass_only")
     language: str = args.pop("language")
-    
+    delay: float = args.pop("delay")
+
     os.makedirs(output_dir, exist_ok=True)
 
     if model_name.endswith(".en"):
@@ -46,7 +48,7 @@ def main():
     model = whisper.load_model(model_name)
     audios = get_audio(args.pop("video"))
     subtitles = get_subtitles(
-        audios, output_ass or ass_only, output_dir, lambda audio_path: model.transcribe(audio_path, word_timestamps=True, **args)
+        audios, output_ass or ass_only, output_dir, lambda audio_path: model.transcribe(audio_path, word_timestamps=True, **args), delay
     )
 
     if ass_only:
@@ -84,7 +86,7 @@ def get_audio(paths):
 
     return audio_paths
 
-def get_subtitles(audio_paths: list, output_ass: bool, output_dir: str, transcribe: callable):
+def get_subtitles(audio_paths: list, output_ass: bool, output_dir: str, transcribe: callable, delay: float):
     subtitles_path = {}
 
     for path, audio_path in audio_paths.items():
@@ -97,13 +99,13 @@ def get_subtitles(audio_paths: list, output_ass: bool, output_dir: str, transcri
         warnings.filterwarnings("default")
 
         with open(ass_path, "w", encoding="utf-8") as ass:
-            write_word_level_ass(result["segments"], file=ass)
+            write_word_level_ass(result["segments"], delay, file=ass)
 
         subtitles_path[path] = ass_path
 
     return subtitles_path
 
-def write_word_level_ass(segments, file, window_size=5):
+def write_word_level_ass(segments, delay, file, window_size=5):
     # Write the ASS header
     file.write("[Script Info]\n")
     file.write("Title: Auto-generated Subtitle\n")
@@ -131,8 +133,9 @@ def write_word_level_ass(segments, file, window_size=5):
 
             # Generate subtitle entries to bold, enlarge, and color each word within the static group text
             for j, word in enumerate(group):
-                start_time = format_time(word['start'])
-                end_time = format_time(word['end'])
+                # Apply delay to start and end times
+                start_time = format_time(word['start'] + delay)
+                end_time = format_time(word['end'] + delay)
 
                 # Build subtitle text with the current word in bold, green, and enlarged
                 styled_text = []
