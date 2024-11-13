@@ -113,11 +113,11 @@ def write_word_level_ass(segments, delay, file, window_size=5):
     file.write("Collisions: Normal\n")
     file.write("PlayDepth: 0\n\n")
     
-    # Define styles: Default for regular text and Highlight for bold, enlarged green text with balanced outline
+    # Define styles: Default for regular text and Highlight for color animation only
     file.write("[V4+ Styles]\n")
     file.write("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
-    file.write("Style: Default, Montserrat, 18, &H00FFFFFF, &H00FFFFFF, &H00000000, &H64000000, 0, 0, 5, 2, 0, 5, 5, 5, 15, 1\n")  # Default style with balanced outline
-    file.write("Style: Highlight, Montserrat, 21, &H0000FF00, &H00FFFFFF, &H00000000, &H64000000, 1, 0, 5, 2, 0, 5, 5, 5, 15, 1\n")  # Bold, green style with balanced outline
+    file.write("Style: Default, Montserrat, 14, &H00FFFFFF, &H00FFFFFF, &H00000000, &H64000000, 1, 0, 5, 1, 1, 5, 5, 5, 15, 1\n")  # Default style
+    file.write("Style: Highlight, Montserrat, 14, &H0000FF00, &H00FFFFFF, &H00000000, &H64000000, 1, 0, 5, 1, 1, 5, 5, 5, 15, 1\n")  # Color only style
 
     file.write("\n[Events]\n")
     file.write("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
@@ -131,22 +131,22 @@ def write_word_level_ass(segments, delay, file, window_size=5):
             group = words[i:i + window_size]
             group_text = " ".join(word['word'].upper() for word in group)  # Full group text in uppercase
 
-            # Generate subtitle entries to bold, enlarge, and color each word within the static group text
+            # Generate subtitle entries to animate color for each word within the static group text
             for j, word in enumerate(group):
                 # Apply delay to start and end times
                 start_time = format_time(word['start'] + delay)
                 end_time = format_time(word['end'] + delay)
 
-                # Build subtitle text with the current word in bold, green, and enlarged
+                # Build subtitle text with the current word in green only
                 styled_text = []
                 for k, w in enumerate(group):
                     word_upper = w['word'].upper()  # Convert to uppercase
                     if k == j:
-                        # Apply the Highlight style with balanced outline
-                        styled_text.append(f"{{\\rHighlight\\fsp-2}}{word_upper}{{\\rDefault}}")
+                        # Apply the Highlight style (color only)
+                        styled_text.append(f"{{\\rHighlight}}{word_upper}{{\\rDefault}}")
                     else:
-                        # Add reduced spacing for regular words
-                        styled_text.append(f"{{\\fsp-2}}{word_upper}")
+                        # Regular style for other words
+                        styled_text.append(word_upper)
 
                 # Write the ASS dialogue entry for the static group, changing only the highlighted word
                 file.write(f"Dialogue: 0,{start_time},{end_time},Default,,0,0,0,,{' '.join(styled_text)}\n")
