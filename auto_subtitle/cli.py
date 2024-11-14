@@ -4,6 +4,7 @@ import whisper
 import argparse
 import warnings
 import tempfile
+import random
 from .utils import filename, str2bool
 
 def main():
@@ -105,7 +106,7 @@ def get_subtitles(audio_paths: list, output_ass: bool, output_dir: str, transcri
 
     return subtitles_path
 
-def write_word_level_ass(segments, delay, file, window_size=5):
+def write_word_level_ass(segments, delay, file):
     # Write the ASS header
     file.write("[Script Info]\n")
     file.write("Title: Auto-generated Subtitle\n")
@@ -116,20 +117,22 @@ def write_word_level_ass(segments, delay, file, window_size=5):
     # Define styles: Default for regular text and Highlight for color animation only
     file.write("[V4+ Styles]\n")
     file.write("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
-    file.write("Style: Default, Montserrat, 14, &H00FFFFFF, &H00FFFFFF, &H00000000, &H64000000, 1, 0, 5, 1, 1, 5, 5, 5, 15, 1\n")  # Default style
-    file.write("Style: Highlight, Montserrat, 14, &H0000FF00, &H00FFFFFF, &H00000000, &H64000000, 1, 0, 5, 1, 1, 5, 5, 5, 15, 1\n")  # Color only style
+    file.write("Style: Default, Montserrat, 14, &H00FFFFFF, &H00FFFFFF, &H00000000, &H64000000, 1, 0, 5, 1, 1, 5, 20, 20, 10, 1\n")  # Top-center alignment
+    file.write("Style: Highlight, Montserrat, 14, &H0000FF00, &H00FFFFFF, &H00000000, &H64000000, 1, 0, 5, 1, 1, 5, 20, 20, 10, 1\n")  # Top-center alignment
 
     file.write("\n[Events]\n")
     file.write("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
 
-    index = 1
     for segment in segments:
         words = segment['words']
         
-        # Group words and display them as a static line with dynamic styling
-        for i in range(0, len(words), window_size):
-            group = words[i:i + window_size]
-            group_text = " ".join(word['word'].upper() for word in group)  # Full group text in uppercase
+        # Group words in chunks of 1-3 words
+        i = 0
+        while i < len(words):
+            # Randomly select a group size between 1 and 3 words
+            group_size = random.randint(1, 3)
+            group = words[i:i + group_size]
+            group_text = " ".join(word['word'].upper() for word in group)
 
             # Generate subtitle entries to animate color for each word within the static group text
             for j, word in enumerate(group):
@@ -150,7 +153,8 @@ def write_word_level_ass(segments, delay, file, window_size=5):
 
                 # Write the ASS dialogue entry for the static group, changing only the highlighted word
                 file.write(f"Dialogue: 0,{start_time},{end_time},Default,,0,0,0,,{' '.join(styled_text)}\n")
-                index += 1
+
+            i += group_size
 
 def format_time(seconds):
     hours, remainder = divmod(seconds, 3600)
